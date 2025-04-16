@@ -20,3 +20,9 @@ class SunData(BaseModel):
     sunset: str
     solar_noon: str
     day_length: str
+
+class HealthPredictionInput(BaseModel):
+    temperature: float
+    soil_moisture: float
+    light_intensity: float
+    humidity: float
