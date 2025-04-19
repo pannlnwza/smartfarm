@@ -1,6 +1,7 @@
 import mysql.connector
 from fastapi import HTTPException
 from .config import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME
+from typing import Any, Tuple
 
 class Database:
     @staticmethod
@@ -30,6 +31,21 @@ class Database:
                 
             return result
         except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+        finally:
+            cursor.close()
+            conn.close()
+
+    @staticmethod
+    def execute_insert(query: str, params: Tuple[Any, ...] = None):
+        conn = Database.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            conn.commit()
+            return cursor.lastrowid
+        except Exception as e:
+            conn.rollback()
             raise HTTPException(status_code=500, detail=str(e))
         finally:
             cursor.close()

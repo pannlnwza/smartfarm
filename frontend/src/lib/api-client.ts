@@ -1,4 +1,4 @@
-import { SensorData, WeatherData, SunData } from "@/models/dashboard";
+import { SensorData, WeatherData, SunData, HealthScore } from "@/models/dashboard";
 
 const API_BASE_URL = "http://localhost:8000/api";
 
@@ -44,5 +44,29 @@ export async function calculatePlantHealthIndex(sensorData: SensorData | null, w
       })
     });
   
+    return await response.json();
+  }
+
+  export async function fetchWeatherHistory(): Promise<WeatherData[]> {
+    const response = await fetch(`${API_BASE_URL}/weather-history`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch weather history: ${response.statusText}`);
+    }
+    return await response.json();
+  }
+  
+  export async function fetchSunHistory(): Promise<SunData[]> {
+    const response = await fetch(`${API_BASE_URL}/sun-history`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch sun history: ${response.statusText}`);
+    }
+    return await response.json();
+  }
+  
+  export async function fetchHealthHistory(): Promise<HealthScore[]> {
+    const response = await fetch(`${API_BASE_URL}/health-history`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch health history: ${response.statusText}`);
+    }
     return await response.json();
   }

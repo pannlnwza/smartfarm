@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import List
 from ..models import SunData
 from ..database import Database
 
@@ -33,5 +34,31 @@ async def get_sun_data():
         "solar_noon": format_timedelta(data["solar_noon"]),
         "day_length": format_timedelta(data["day_length"])
     }
+    
+    return formatted_data
+
+@router.get("/sun-history", response_model=List[SunData])
+async def get_sun_history():
+    query = """
+        SELECT ts as timestamp, sunrise, sunset, solar_noon, day_length 
+        FROM sunrise_sunset 
+        WHERE ts > DATE_SUB(NOW(), INTERVAL 24 HOUR)
+        ORDER BY ts ASC
+    """
+    data = Database.execute_query(query)
+    
+    if not data:
+        raise HTTPException(status_code=404, detail="No sun history found")
+    
+    # Format timedelta objects to strings for each record
+    formatted_data = []
+    for item in data:
+        formatted_data.append({
+            "timestamp": item["timestamp"],
+            "sunrise": format_timedelta(item["sunrise"]),
+            "sunset": format_timedelta(item["sunset"]),
+            "solar_noon": format_timedelta(item["solar_noon"]),
+            "day_length": format_timedelta(item["day_length"])
+        })
     
     return formatted_data

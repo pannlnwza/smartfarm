@@ -10,7 +10,7 @@ async def get_sensor_data():
     query = """
         SELECT ts as timestamp, lux, temperature, moisture as soil_moisture
         FROM smartfarm 
-        ORDER BY ts DESC 
-        LIMIT 100
+        WHERE ts > DATE_SUB(NOW(), INTERVAL 24 HOUR)
+        ORDER BY ts ASC
     """
     return Database.execute_query(query)

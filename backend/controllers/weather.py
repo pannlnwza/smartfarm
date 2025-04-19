@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from ..models import WeatherData
+from typing import List
 from ..database import Database
 
 router = APIRouter()
@@ -16,5 +17,20 @@ async def get_weather_data():
     
     if not data:
         raise HTTPException(status_code=404, detail="No weather data found")
+    
+    return data
+
+@router.get("/weather-history", response_model=List[WeatherData])
+async def get_weather_history():
+    query = """
+        SELECT ts as timestamp, humidity, pressure, rain_1h, clouds as cloudiness
+        FROM weather_api 
+        WHERE ts > DATE_SUB(NOW(), INTERVAL 24 HOUR)
+        ORDER BY ts ASC
+    """
+    data = Database.execute_query(query)
+    
+    if not data:
+        raise HTTPException(status_code=404, detail="No weather history found")
     
     return data

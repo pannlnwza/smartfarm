@@ -1,7 +1,7 @@
 // src/pages/dashboard.tsx
 import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { fetchSensorData, fetchWeatherData, fetchSunData, calculatePlantHealthIndex } from '@/lib/api-client';
+import { fetchSensorData, fetchWeatherData, fetchWeatherHistory, fetchSunData, fetchSunHistory, calculatePlantHealthIndex, fetchHealthHistory } from '@/lib/api-client';
 import { DashboardData, SensorData, WeatherData } from '@/models/dashboard';
 import { Geist, Geist_Mono } from "next/font/google";
 
@@ -70,7 +70,10 @@ export default function Dashboard() {
     latestSensor: null,
     sensorHistory: [],
     weather: null,
+    weatherHistory: [],
     sun: null,
+    sunHistory: [],
+    healthHistory: [],
     loading: true,
     error: null
   });
@@ -82,6 +85,8 @@ export default function Dashboard() {
     health_status: 'UNKNOWN'
   });
   
+  const [timeRange, setTimeRange]  = useState<string>('24h');
+
   // Fetch data from API
   const fetchDashboardData = async () => {
     try {
@@ -92,19 +97,25 @@ export default function Dashboard() {
       
       // Fetch weather data
       const weatherData = await fetchWeatherData();
+      const weatherHistory = await fetchWeatherHistory();
       
       // Fetch sun data
       const sunData = await fetchSunData();
+      const sunHistory = await fetchSunHistory();
 
       const plantHealth = await calculatePlantHealthIndex(sensorData[0], weatherData);
+      const healthHistory = await fetchHealthHistory();
       setPlantHealth(plantHealth);
 
       
       setDashboardData({
         latestSensor: sensorData[0] || null,
-        sensorHistory: sensorData.slice(0, 20), // Use last 20 readings
+        sensorHistory: sensorData,
         weather: weatherData,
+        weatherHistory: weatherHistory,
         sun: sunData,
+        sunHistory: sunHistory,
+        healthHistory: healthHistory,
         loading: false,
         error: null
       });
@@ -131,14 +142,86 @@ export default function Dashboard() {
     return () => clearInterval(intervalId);
   }, [refreshInterval]);
 
-  // Format data for charts
-  const chartData = dashboardData.sensorHistory.map(reading => ({
+  useEffect(() => {
+    const intervalId = setInterval(fetchDashboardData, refreshInterval);
+    return () => clearInterval(intervalId);
+  }, [refreshInterval]);
+
+  // Filter data based on selected time range
+  const filterDataByTimeRange = (data: any[]) => {
+    if (!data || data.length === 0) return [];
+    
+    const now = new Date().getTime();
+    const rangeInHours = timeRange === "24h" ? 24 : 
+                        timeRange === "12h" ? 12 : 
+                        timeRange === "6h" ? 6 : 3;
+    
+    const cutoffTime = now - (rangeInHours * 60 * 60 * 1000);
+    
+    return data.filter(item => new Date(item.timestamp).getTime() > cutoffTime);
+  };
+
+  const weatherMap = new Map(
+    filterDataByTimeRange(dashboardData.weatherHistory).map(reading => [
+      formatTimeForChart(reading.timestamp),
+      reading.rain_1h
+    ])
+  );
+  
+  const moistureRainChartData = filterDataByTimeRange(dashboardData.sensorHistory).map(reading => {
+    const name = formatTimeForChart(reading.timestamp);
+    return {
+      name: name,
+      moisture: reading.soil_moisture,
+      rain: weatherMap.get(name) ?? 0
+    };
+  });
+
+  const humidityMap = new Map(
+    filterDataByTimeRange(dashboardData.weatherHistory).map(reading => [
+      formatTimeForChart(reading.timestamp),
+      reading.humidity
+    ])
+  );
+
+  const tempHumidityChartData = filterDataByTimeRange(dashboardData.sensorHistory).map(reading => {
+    const name = formatTimeForChart(reading.timestamp);
+    return {
+      name: name,
+      temperature: reading.temperature,
+      humidity: humidityMap.get(name) ?? null
+    };
+  });
+
+
+  const sensorChartData = filterDataByTimeRange(dashboardData.sensorHistory).map(reading => ({
     name: formatTimeForChart(reading.timestamp),
     temperature: reading.temperature,
     moisture: reading.soil_moisture,
-    lux: reading.lux,
-    humidity: dashboardData.weather?.humidity || 0
-  })).reverse(); // Most recent data last
+    lux: reading.lux
+  }));
+  
+  const weatherChartData = filterDataByTimeRange(dashboardData.weatherHistory).map(reading => ({
+    name: formatTimeForChart(reading.timestamp),
+    humidity: reading.humidity,
+    pressure: reading.pressure / 10, // Scale down for better visualization
+    rain: reading.rain_1h,
+    cloudiness: reading.cloudiness
+  }));
+  
+  const healthChartData = filterDataByTimeRange(dashboardData.healthHistory).map(reading => ({
+    name: formatTimeForChart(reading.timestamp),
+    score: reading.health_score,
+    status: reading.health_status
+  }));
+
+  const sunChartData = filterDataByTimeRange(dashboardData.sunHistory).map(reading => ({
+    name: formatTimeForChart(reading.timestamp),
+    sunrise: reading.sunrise,
+    sunset: reading.sunset,
+    solar_noon: reading.solar_noon,
+    day_length: reading.day_length
+  }));
 
   // Calculate plant health
   
@@ -181,6 +264,18 @@ export default function Dashboard() {
       <div className="flex justify-between items-center mb-6 pb-2 border-b border-gray-700">
         <h1 className="text-2xl font-semibold">SmartFarm Dashboard</h1>
         <div className="flex items-center">
+          <div className="mr-4">
+            <select 
+              value={timeRange}
+              onChange={(e) => setTimeRange(e.target.value)}
+              className="bg-gray-800 text-white border border-gray-700 rounded px-3 py-1 text-sm"
+            >
+              <option value="3h">Last 3 Hours</option>
+              <option value="6h">Last 6 Hours</option>
+              <option value="12h">Last 12 Hours</option>
+              <option value="24h">Last 24 Hours</option>
+            </select>
+          </div>
           <button 
             onClick={fetchDashboardData}
             className="mr-4 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
@@ -209,12 +304,22 @@ export default function Dashboard() {
               {plantHealth.health_status}
             </div>
           </div>
+          <div className="h-48 w-full mt-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={healthChartData}>
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
+                <Tooltip />
+                <Line type="monotone" dataKey="score" stroke="#10b981" dot={{ r: 3 }} strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         {/* Soil & Water Card */}
         <div className="bg-gray-800 p-4 rounded-lg shadow-md">
           <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-700">
-            <h2 className="text-lg font-medium">Soil & Water</h2>
+            <h2 className="text-lg font-medium">Soil & Rain</h2>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
               <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
             </svg>
@@ -235,11 +340,12 @@ export default function Dashboard() {
           </div>
           <div className="h-48 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
+              <LineChart data={moistureRainChartData}>
                 <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip />
-                <Line type="monotone" dataKey="moisture" stroke="#3b82f6" dot={false} strokeWidth={2} />
+                <Line type="monotone" dataKey="moisture" stroke="#22c55e" dot={false} strokeWidth={2} />
+                <Line type="monotone" dataKey="rain" stroke="#3b82f6" dot={false} strokeWidth={2} strokeDasharray={"3 3"} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -275,7 +381,7 @@ export default function Dashboard() {
           </div>
           <div className="h-48 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
+              <LineChart data={tempHumidityChartData}>
                 <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip />
@@ -318,7 +424,7 @@ export default function Dashboard() {
           </div>
           <div className="h-48 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
+              <LineChart data={sensorChartData}>
                 <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip />
@@ -376,7 +482,7 @@ export default function Dashboard() {
           </div>
           <div className="h-48 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
+              <LineChart data={sunChartData}>
                 <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
                 <Tooltip />

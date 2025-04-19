@@ -26,3 +26,8 @@ class HealthPredictionInput(BaseModel):
     soil_moisture: float
     light_intensity: float
     humidity: float
+
+class HealthScore(BaseModel):
+    timestamp: datetime
+    health_score: float
+    health_status: str

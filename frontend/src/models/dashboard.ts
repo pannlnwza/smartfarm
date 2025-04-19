@@ -20,13 +20,23 @@ export interface SensorData {
     solar_noon: string;
     day_length: string;
   }
+
+  export interface HealthScore {
+    timestamp: string;
+    score: number;
+    status: string;
+  }
   
   // Dashboard data structure
   export interface DashboardData {
     latestSensor: SensorData | null;
     sensorHistory: SensorData[];
     weather: WeatherData | null;
+    weatherHistory: WeatherData[];
     sun: SunData | null;
+    sunHistory: SunData[];
+    healthHistory: HealthScore[];
     loading: boolean;
     error: string | null;
   }
+

@@ -1,8 +1,11 @@
 import pandas as pd
 from fastapi import APIRouter, HTTPException
-from ..models import HealthPredictionInput
+from typing import List
+from ..models import HealthPredictionInput, HealthScore
 from pathlib import Path
 import joblib
+from ..database import Database
+from datetime import datetime
 
 router = APIRouter()
 
@@ -28,6 +31,13 @@ async def predict_health(data: HealthPredictionInput):
             status = "Healthy"
         elif score >= 40:
             status = "Fair"
+        
+        # Save the health score to database
+        save_query = """
+        INSERT INTO plant_health (ts, health_score, health_status)
+        VALUES (%s, %s, %s)
+        """
+        Database.execute_insert(save_query, (datetime.now(), round(score, 1), status))
 
         return {
             "health_score": round(score, 1),
@@ -36,3 +46,18 @@ async def predict_health(data: HealthPredictionInput):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction error: {e}")
+
+@router.get("/health-history", response_model=List[HealthScore])
+async def get_health_history():
+    query = """
+        SELECT ts as timestamp, health_score, health_status
+        FROM plant_health
+        WHERE ts > DATE_SUB(NOW(), INTERVAL 24 HOUR)
+        ORDER BY ts ASC
+    """
+    data = Database.execute_query(query)
+    
+    if not data:
+        raise HTTPException(status_code=404, detail="No health history found")
+    
+    return data
