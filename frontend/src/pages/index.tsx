@@ -1,9 +1,10 @@
 // src/pages/dashboard.tsx
 import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { fetchSensorData, fetchWeatherData, fetchWeatherHistory, fetchSunData, fetchSunHistory, calculatePlantHealthIndex, fetchHealthHistory } from '@/lib/api-client';
+import { fetchSensorData, fetchWeatherData, fetchWeatherHistory, fetchSunData, fetchSunHistory, calculatePlantHealthIndex, fetchHealthHistory, fetchForecast } from '@/lib/api-client';
 import { DashboardData, SensorData, WeatherData } from '@/models/dashboard';
 import { Geist, Geist_Mono } from "next/font/google";
+import Link from 'next/link';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -74,11 +75,12 @@ export default function Dashboard() {
     sun: null,
     sunHistory: [],
     healthHistory: [],
+    forecast: [],
     loading: true,
     error: null
   });
   
-  const [refreshInterval, setRefreshInterval] = useState<number>(60000); // 1 minute
+  const [refreshInterval, setRefreshInterval] = useState<number>(300000);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [plantHealth, setPlantHealth] = useState<{ health_score: number; health_status: string }>({
     health_score: 0,
@@ -107,6 +109,7 @@ export default function Dashboard() {
       const healthHistory = await fetchHealthHistory();
       setPlantHealth(plantHealth);
 
+      const forecastData = await fetchForecast();
       
       setDashboardData({
         latestSensor: sensorData[0] || null,
@@ -116,6 +119,7 @@ export default function Dashboard() {
         sun: sunData,
         sunHistory: sunHistory,
         healthHistory: healthHistory,
+        forecast: forecastData,
         loading: false,
         error: null
       });
@@ -223,7 +227,58 @@ export default function Dashboard() {
     day_length: reading.day_length
   }));
 
-  // Calculate plant health
+  const getWeatherIcon = (weather: string) => {
+    switch(weather.toLowerCase()) {
+      case 'rain':
+      case 'drizzle':
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
+            <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path>
+            <path d="M16 14v6"></path>
+            <path d="M8 14v6"></path>
+            <path d="M12 16v6"></path>
+          </svg>
+        );
+      case 'clear':
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-400">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2"></path>
+            <path d="M12 20v2"></path>
+            <path d="m4.93 4.93 1.41 1.41"></path>
+            <path d="m17.66 17.66 1.41 1.41"></path>
+            <path d="M2 12h2"></path>
+            <path d="M20 12h2"></path>
+            <path d="m6.34 17.66-1.41 1.41"></path>
+            <path d="m19.07 4.93-1.41 1.41"></path>
+          </svg>
+        );
+      case 'clouds':
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
+            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
+          </svg>
+        );
+      default:
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
+            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
+          </svg>
+        );
+    }
+  };
+
+  // Define status color
+  const getStatusColor = (status: string) => {
+    switch(status.toLowerCase()) {
+      case 'rain_expected':
+        return 'bg-blue-100 text-blue-800';
+      case 'clear':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
   
   // Generate alerts
   const alerts = generateAlerts(dashboardData);
@@ -231,7 +286,7 @@ export default function Dashboard() {
   // Loading state
   if (dashboardData.loading && !dashboardData.latestSensor) {
     return (
-      <div className={`${geistSans.className} ${geistMono.className} bg-gray-900 text-gray-100 p-6 w-full h-screen flex items-center justify-center`}>
+      <div className={`${geistSans.className} ${geistMono.className} bg-gray-50 text-gray-800 p-6 w-full h-screen flex items-center justify-center`}>
         <div className="text-center">
           <h2 className="text-xl mb-4">Loading dashboard data...</h2>
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
@@ -243,7 +298,7 @@ export default function Dashboard() {
   // Error state
   if (dashboardData.error && !dashboardData.latestSensor) {
     return (
-      <div className={`${geistSans.className} ${geistMono.className} bg-gray-900 text-gray-100 p-6 w-full h-screen flex items-center justify-center`}>
+      <div className={`${geistSans.className} ${geistMono.className} bg-gray-50 text-gray-800 p-6 w-full h-screen flex items-center justify-center`}>
         <div className="text-center">
           <h2 className="text-xl mb-4 text-red-500">Error Loading Dashboard</h2>
           <p className="mb-4">{dashboardData.error}</p>
@@ -258,17 +313,46 @@ export default function Dashboard() {
     );
   }
 
+  function toTitleCase(str: string): string {
+    return str
+      .toLowerCase()
+      .split(" ")
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  }
+
+  function getDayProgressPercent(sunrise: string, sunset: string): number {
+    const now = new Date();
+    const start = new Date(`${now.toDateString()} ${sunrise}`);
+    const end = new Date(`${now.toDateString()} ${sunset}`);
+  
+    const percent = ((now.getTime() - start.getTime()) / (end.getTime() - start.getTime())) * 100;
+    console.log(Math.min(100, Math.max(0, percent)))
+    return Math.min(100, Math.max(0, percent));
+  }
+
   return (
-    <div className={`${geistSans.className} ${geistMono.className} bg-gray-900 text-gray-100 p-6 w-full min-h-screen`}>
+    <div className={`${geistSans.className} ${geistMono.className} bg-gray-50 text-gray-800 p-6 w-full min-h-screen`}>
       {/* Dashboard Header */}
-      <div className="flex justify-between items-center mb-6 pb-2 border-b border-gray-700">
+      <div className="flex justify-between items-center mb-6 pb-2 border-b border-gray-200">
         <h1 className="text-2xl font-semibold">SmartFarm Dashboard</h1>
         <div className="flex items-center">
+        <Link 
+            href="/predict" 
+            className="mr-4 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm flex items-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+              <path d="M21 8a5 5 0 1 0-10 0"></path>
+              <path d="M21 12c0 3.28-4 6-6 11-2-5-6-7.72-6-11a6 6 0 0 1 12 0Z"></path>
+              <circle cx="15" cy="8" r="2"></circle>
+            </svg>
+            Predict Health
+          </Link>
           <div className="mr-4">
             <select 
               value={timeRange}
               onChange={(e) => setTimeRange(e.target.value)}
-              className="bg-gray-800 text-white border border-gray-700 rounded px-3 py-1 text-sm"
+              className="bg-white text-gray-800 border border-gray-300 rounded px-3 py-1 text-sm"
             >
               <option value="3h">Last 3 Hours</option>
               <option value="6h">Last 6 Hours</option>
@@ -282,7 +366,7 @@ export default function Dashboard() {
           >
             Refresh
           </button>
-          <span className="text-sm text-gray-400">
+          <span className="text-sm text-gray-500">
             Last updated: {lastUpdated.toLocaleString()}
           </span>
         </div>
@@ -290,12 +374,12 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Plant Health Index Card */}
-        <div className="bg-gray-800 p-4 rounded-lg shadow-md">
-          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-700">
-            <h2 className="text-lg font-medium">Plant Health Index</h2>
+        <div className="bg-white p-4 rounded-lg shadow-md">
+          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
+            <h2 className="text-lg font-medium text-gray-700">Plant Health Index</h2>
           </div>
           <div className="text-center">
-            <div className="text-5xl font-bold mb-2">{plantHealth.health_score}</div>
+            <div className="text-5xl font-bold mb-2 text-gray-800">{plantHealth.health_score}</div>
             <div className={`inline-block px-4 py-1 rounded-full text-sm font-semibold text-white ${
               plantHealth.health_status === 'Excellent' ? 'bg-green-500' :
               plantHealth.health_status === 'Healthy' ? 'bg-lime-500' :
@@ -310,28 +394,28 @@ export default function Dashboard() {
                 <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
                 <Tooltip />
-                <Line type="monotone" dataKey="score" stroke="#10b981" dot={{ r: 3 }} strokeWidth={2} />
+                <Line type="monotone" dataKey="score" stroke="#10b981" dot={false} strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Soil & Water Card */}
-        <div className="bg-gray-800 p-4 rounded-lg shadow-md">
-          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-700">
+        <div className="bg-white p-4 rounded-lg shadow-md">
+          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
             <h2 className="text-lg font-medium">Soil & Rain</h2>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
               <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
             </svg>
           </div>
           <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="text-center p-2 bg-gray-700 rounded-lg">
+            <div className="text-center p-2 bg-gray-50 rounded-lg">
               <div className="text-sm text-gray-400 mb-1">Soil Moisture</div>
               <div className="text-xl font-bold">
                 {dashboardData.latestSensor?.soil_moisture || 0}%
               </div>
             </div>
-            <div className="text-center p-2 bg-gray-700 rounded-lg">
+            <div className="text-center p-2 bg-gray-50 rounded-lg">
               <div className="text-sm text-gray-400 mb-1">Rainfall (1h)</div>
               <div className="text-xl font-bold">
                 {dashboardData.weather?.rain_1h || 0}mm
@@ -352,27 +436,27 @@ export default function Dashboard() {
         </div>
 
         {/* Temperature & Humidity Card */}
-        <div className="bg-gray-800 p-4 rounded-lg shadow-md">
-          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-700">
+        <div className="bg-white p-4 rounded-lg shadow-md">
+          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
             <h2 className="text-lg font-medium">Temperature & Humidity</h2>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400">
               <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path>
             </svg>
           </div>
           <div className="grid grid-cols-3 gap-2 mb-4">
-            <div className="text-center p-2 bg-gray-700 rounded-lg">
+            <div className="text-center p-2 bg-gray-50 rounded-lg">
               <div className="text-sm text-gray-400 mb-1">Temperature</div>
               <div className="text-xl font-bold">
                 {dashboardData.latestSensor?.temperature || 0}°C
               </div>
             </div>
-            <div className="text-center p-2 bg-gray-700 rounded-lg">
+            <div className="text-center p-2 bg-gray-50 rounded-lg">
               <div className="text-sm text-gray-400 mb-1">Humidity</div>
               <div className="text-xl font-bold">
                 {dashboardData.weather?.humidity || 0}%
               </div>
             </div>
-            <div className="text-center p-2 bg-gray-700 rounded-lg">
+            <div className="text-center p-2 bg-gray-50 rounded-lg">
               <div className="text-sm text-gray-400 mb-1">Pressure</div>
               <div className="text-xl font-bold">
                 {dashboardData.weather?.pressure || 0}
@@ -393,8 +477,8 @@ export default function Dashboard() {
         </div>
 
         {/* Light Conditions Card */}
-        <div className="bg-gray-800 p-4 rounded-lg shadow-md">
-          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-700">
+        <div className="bg-white p-4 rounded-lg shadow-md">
+          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
             <h2 className="text-lg font-medium">Light Conditions</h2>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-400">
               <circle cx="12" cy="12" r="5"></circle>
@@ -409,13 +493,13 @@ export default function Dashboard() {
             </svg>
           </div>
           <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="text-center p-2 bg-gray-700 rounded-lg">
+            <div className="text-center p-2 bg-gray-50 rounded-lg">
               <div className="text-sm text-gray-400 mb-1">Light Intensity</div>
               <div className="text-xl font-bold">
                 {dashboardData.latestSensor?.lux || 0} lux
               </div>
             </div>
-            <div className="text-center p-2 bg-gray-700 rounded-lg">
+            <div className="text-center p-2 bg-gray-50 rounded-lg">
               <div className="text-sm text-gray-400 mb-1">Cloudiness</div>
               <div className="text-xl font-bold">
                 {dashboardData.weather?.cloudiness || 0}%
@@ -435,78 +519,126 @@ export default function Dashboard() {
         </div>
 
         {/* Day Timeline Card */}
-        <div className="bg-gray-800 p-4 rounded-lg shadow-md">
-          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-700">
+        <div className="bg-white p-4 rounded-lg shadow-md">
+          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
             <h2 className="text-lg font-medium">Day Timeline</h2>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-300">
               <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
             </svg>
           </div>
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            <div className="text-center p-2 bg-gray-700 rounded-lg">
+          <div className="text-center p-2 bg-gray-50 rounded-lg mb-4">
+              <div className="text-sm text-gray-400 mb-1">Current Time</div>
+              <div className="text-xl font-bold">{new Date(Date.now()).toLocaleTimeString() || "--:--"}</div>
+            </div>
+          <div className="grid grid-cols-3 gap-2 mb-6">
+            <div className="text-center p-2 bg-gray-50 rounded-lg">
               <div className="text-sm text-gray-400 mb-1">Sunrise</div>
               <div className="text-xl font-bold">{dashboardData.sun?.sunrise || "--:--"}</div>
             </div>
-            <div className="text-center p-2 bg-gray-700 rounded-lg">
+            <div className="text-center p-2 bg-gray-50 rounded-lg">
               <div className="text-sm text-gray-400 mb-1">Sunset</div>
               <div className="text-xl font-bold">{dashboardData.sun?.sunset || "--:--"}</div>
             </div>
-            <div className="text-center p-2 bg-gray-700 rounded-lg">
+            <div className="text-center p-2 bg-gray-50 rounded-lg">
               <div className="text-sm text-gray-400 mb-1">Day Length</div>
               <div className="text-xl font-bold">{dashboardData.sun?.day_length || "--:--"}</div>
             </div>
-          </div>
-          <div className="h-12 w-full mt-4 relative bg-gray-700 rounded-lg overflow-hidden">
-            {/* Night time (before sunrise) */}
-            <div className="absolute top-0 left-0 h-full w-1/4 bg-blue-900 bg-opacity-30"></div>
-            {/* Day time */}
-            <div className="absolute top-0 left-1/4 h-full w-1/2 bg-yellow-500 bg-opacity-20"></div>
-            {/* Night time (after sunset) */}
-            <div className="absolute top-0 right-0 h-full w-1/4 bg-blue-900 bg-opacity-30"></div>
-            {/* Markers */}
-            <div className="absolute top-1/2 left-1/4 w-3 h-3 bg-orange-500 rounded-full transform -translate-y-1/2"></div>
-            <div className="absolute top-1/2 left-1/2 w-3 h-3 bg-yellow-500 rounded-full transform -translate-y-1/2"></div>
-            <div className="absolute top-1/2 right-1/4 w-3 h-3 bg-red-500 rounded-full transform -translate-y-1/2"></div>
-            {/* Current time indicator */}
-            <div className="absolute top-1/2 left-3/5 w-4 h-4 bg-white border-2 border-black rounded-full transform -translate-y-1/2"></div>
-          </div>
         </div>
-
-        {/* Moisture Time Series Card */}
-        <div className="bg-gray-800 p-4 rounded-lg shadow-md">
-          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-700">
-            <h2 className="text-lg font-medium">Soil Moisture History</h2>
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
-              <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
-            </svg>
-          </div>
-          <div className="h-48 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={sunChartData}>
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
-                <Tooltip />
-                <Line 
-                  type="monotone" 
-                  dataKey="moisture" 
-                  stroke="#3b82f6" 
-                  strokeWidth={2}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6, fill: '#2563eb' }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          {dashboardData.latestSensor?.soil_moisture && dashboardData.latestSensor.soil_moisture < 30 && (
-            <div className="mt-2 text-center text-sm text-yellow-500 font-medium">
-              Soil moisture is below optimal levels
-            </div>
+        <div className="mt-6">
+      <div className="relative h-16 bg-gray-100 rounded-lg overflow-hidden">
+        {/* Night-Day-Night gradient */}
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-900 via-blue-400 to-indigo-900">
+          {/* Day portion (between sunrise and sunset) */}
+          {dashboardData.sun?.sunrise && dashboardData.sun?.sunset && (
+            <div 
+              className="absolute inset-y-0 bg-gradient-to-r from-yellow-200 via-blue-300 to-orange-200" 
+              style={{ 
+                left: `${(parseInt(dashboardData.sun.sunrise.split(':')[0]) * 60 + parseInt(dashboardData.sun.sunrise.split(':')[1])) / 1440 * 100}%`,
+                right: `${100 - (parseInt(dashboardData.sun.sunset.split(':')[0]) * 60 + parseInt(dashboardData.sun.sunset.split(':')[1])) / 1440 * 100}%`
+              }}
+            ></div>
           )}
         </div>
+    
+    {/* Current time marker */}
+          <div 
+            className="absolute top-0 w-1 h-full bg-white z-30" 
+            style={{ 
+              left: `${(new Date().getHours() * 60 + new Date().getMinutes()) / 1440 * 100}%`,
+              transform: 'translateX(-50%)'
+            }}
+          >
+            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-white rounded-full shadow-md border-2 border-blue-500"></div>
+          </div>
+          
+          {/* Time markers */}
+          {[0, 6, 12, 18, 24].map(hour => (
+            <div 
+              key={hour} 
+              className="absolute bottom-0 h-2 w-0.5 bg-gray-400 z-20"
+              style={{ left: `${hour / 24 * 100}%` }}
+            ></div>
+          ))}
+        </div>
+        
+        {/* Time labels */}
+        <div className="flex justify-between mt-1 px-1 text-xs text-gray-500">
+          <div>12 AM</div>
+          <div>6 AM</div>
+          <div>12 PM</div>
+          <div>6 PM</div>
+          <div>12 AM</div>
+        </div>
+      </div>
 
+        
+
+        </div>
+
+        {/* Forecast */}
+        <div className="bg-white p-4 rounded-lg shadow-md">
+          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
+            <h2 className="text-lg font-medium">Rain Forecast</h2>
+            {getWeatherIcon(dashboardData.forecast.forecast.weather)}
+          </div>
+
+        <div className="mb-4">
+          <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(dashboardData.forecast.status)}`}>
+            {toTitleCase(dashboardData.forecast.status.replace('_', ' '))}
+          </span>
+          <div className="text-sm text-gray-600 mt-2">{dashboardData.forecast.summary.message}</div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="text-center p-2 bg-gray-50 rounded-lg">
+          <div className="text-sm text-gray-400 mb-1">Expected Rain</div>
+          <div className="text-xl font-bold">{dashboardData.forecast.forecast.rain_mm} mm</div>
+        </div>
+        <div className="text-center p-2 bg-gray-50 rounded-lg">
+          <div className="text-sm text-gray-400 mb-1">Condition</div>
+          <div className="text-xl font-bold">{toTitleCase(dashboardData.forecast.forecast.description)}</div>
+        </div>
+        <div className="text-center p-2 bg-gray-50 rounded-lg">
+          <div className="text-sm text-gray-400 mb-1">Time Until Rain</div>
+          <div className="text-xl font-bold">
+            {dashboardData.forecast.summary.time_until_rain.days}d {dashboardData.forecast.summary.time_until_rain.hours}h
+          </div>
+        </div>
+
+        <div className="text-center p-2 bg-gray-50 rounded-lg">
+        <div className="text-sm text-gray-400 mb-1">Forecast Time</div>
+          <div className="text-base font-medium text-gray-700">{dashboardData.forecast.forecast.datetime_local}</div>
+        </div>
+
+        
+
+    </div>
+
+     
+    </div>
         {/* Alerts Card */}
-        <div className="bg-gray-800 p-4 rounded-lg shadow-md md:col-span-2 lg:col-span-3">
-          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-700">
+        <div className="bg-white p-4 rounded-lg shadow-md md:col-span-2 lg:col-span-3">
+          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
             <div className="flex items-center">
               <h2 className="text-lg font-medium">Alerts & Notifications</h2>
               {alerts.length > 0 && (

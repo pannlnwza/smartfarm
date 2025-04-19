@@ -1,4 +1,4 @@
-import { SensorData, WeatherData, SunData, HealthScore } from "@/models/dashboard";
+import { SensorData, WeatherData, SunData, HealthScore, Forecasts } from "@/models/dashboard";
 
 const API_BASE_URL = "http://localhost:8000/api";
 
@@ -68,5 +68,14 @@ export async function calculatePlantHealthIndex(sensorData: SensorData | null, w
     if (!response.ok) {
       throw new Error(`Failed to fetch health history: ${response.statusText}`);
     }
+    return await response.json();
+  }
+
+  export async function fetchForecast(): Promise<Forecasts> {
+    const response = await fetch(`${API_BASE_URL}/when-will-it-rain`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch forecast: ${response.statusText}`);
+    }
+    console.log("Forecast Response:", response);
     return await response.json();
   }

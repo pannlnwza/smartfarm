@@ -26,6 +26,7 @@ class HealthPredictionInput(BaseModel):
     soil_moisture: float
     light_intensity: float
     humidity: float
+    save_to_history: bool = True
 
 class HealthScore(BaseModel):
     timestamp: datetime
