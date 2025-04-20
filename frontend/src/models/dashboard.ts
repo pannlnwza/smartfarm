@@ -24,7 +24,6 @@ export interface SensorData {
 
   export interface HealthScore {
     timestamp: string;
-    score: number;
     status: string;
   }
 
@@ -67,4 +66,23 @@ export interface SensorData {
     error: string | null;
   }
 
+  export interface HourlyAverage {
+    hour: string;
+    temperature: number;
+    moisture: number;
+    light: number;
+  }
+  
+  export interface CorrelationPoint {
+    timestamp: string;
+    temperature: number;
+    moisture: number;
+    humidity: number;
+    rain: number;
+  }
+  
+  export interface HealthDistribution {
+    name: string;
+    value: number;
+  }
 

@@ -1,7 +1,7 @@
 // src/pages/dashboard.tsx
 import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, TooltipProps } from 'recharts';
-import { fetchSensorData, fetchWeatherData, fetchWeatherHistory, fetchSunData, fetchSunHistory, calculatePlantHealthIndex, fetchHealthHistory, fetchForecast } from '@/lib/api-client';
+import { fetchSensorData, fetchWeatherData, fetchWeatherHistory, fetchSunData, fetchSunHistory, calculatePlantHealthIndex, fetchHealthHistory, fetchForecast, fetchWaterRecommendation } from '@/lib/api-client';
 import { DashboardData, SensorData, WeatherData } from '@/models/dashboard';
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from 'next/link';
@@ -42,6 +42,22 @@ function generateAlerts(data: DashboardData) {
     });
   }
   
+  return alerts;
+}
+
+export async function generateAlertsWithRecommendation(data: DashboardData) {
+  const alerts = generateAlerts(data);
+
+  const rainDatetime = data.forecast?.forecast?.datetime_local ?? null;
+  const recommendation = await fetchWaterRecommendation(data.latestSensor, rainDatetime);
+
+  if (recommendation?.recommendation) {
+    alerts.push({
+      type: 'info',
+      message: `Watering Tip: ${recommendation.recommendation}`
+    });
+  }
+
   return alerts;
 }
 
@@ -285,8 +301,18 @@ export default function Dashboard() {
     }
   };
   
-  // Generate alerts
-  const alerts = generateAlerts(dashboardData);
+  const [alerts, setAlerts] = useState<{ type: string; message: string }[]>([]);
+
+  useEffect(() => {
+    async function loadAlerts() {
+      const newAlerts = await generateAlertsWithRecommendation(dashboardData);
+      setAlerts(newAlerts);
+    }
+  
+    if (dashboardData) {
+      loadAlerts();
+    }
+  }, [dashboardData]);
   
   // Loading state
   if (dashboardData.loading && !dashboardData.latestSensor) {
@@ -386,6 +412,8 @@ export default function Dashboard() {
 
   return (
     <div className={`${geistSans.className} ${geistMono.className} bg-gray-50 text-gray-800 p-6 w-full min-h-screen`}>
+      <title>SmartFarm - Dashboard</title>
+
       {/* Dashboard Header */}
       <div className="flex justify-between items-center mb-6 pb-2 border-b border-gray-200">
         <h1 className="text-2xl font-semibold">SmartFarm Dashboard</h1>
@@ -400,6 +428,17 @@ export default function Dashboard() {
               <circle cx="15" cy="8" r="2"></circle>
             </svg>
             Predict Health
+          </Link>
+          <Link 
+            href="/statistics" 
+            className="mr-4 bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm flex items-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+              <path d="M21 8a5 5 0 1 0-10 0"></path>
+              <path d="M21 12c0 3.28-4 6-6 11-2-5-6-7.72-6-11a6 6 0 0 1 12 0Z"></path>
+              <circle cx="15" cy="8" r="2"></circle>
+            </svg>
+            Statistics
           </Link>
           <div className="mr-4">
             <select 

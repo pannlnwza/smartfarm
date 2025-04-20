@@ -3,6 +3,14 @@ import { SensorData, WeatherData, SunData, HealthScore, Forecasts } from "@/mode
 const API_BASE_URL = "http://localhost:8000/api";
 
 export async function fetchSensorData(): Promise<SensorData[]> {
+  const response = await fetch(`${API_BASE_URL}/sensor-data/recent`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch sensor data: ${response.statusText}`);
+  }
+  return await response.json();
+}
+
+export async function fetchAllSensorData(): Promise<SensorData[]> {
   const response = await fetch(`${API_BASE_URL}/sensor-data`);
   if (!response.ok) {
     throw new Error(`Failed to fetch sensor data: ${response.statusText}`);
@@ -11,7 +19,7 @@ export async function fetchSensorData(): Promise<SensorData[]> {
 }
 
 export async function fetchWeatherData(): Promise<WeatherData> {
-  const response = await fetch(`${API_BASE_URL}/weather-data`);
+  const response = await fetch(`${API_BASE_URL}/weather-data/latest`);
   if (!response.ok) {
     throw new Error(`Failed to fetch weather data: ${response.statusText}`);
   }
@@ -49,7 +57,15 @@ export async function calculatePlantHealthIndex(sensorData: SensorData | null, w
   }
 
   export async function fetchWeatherHistory(): Promise<WeatherData[]> {
-    const response = await fetch(`${API_BASE_URL}/weather-history`);
+    const response = await fetch(`${API_BASE_URL}/weather-data/recent`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch weather history: ${response.statusText}`);
+    }
+    return await response.json();
+  }
+
+  export async function fetchAllWeather(): Promise<WeatherData[]> {
+    const response = await fetch(`${API_BASE_URL}/weather-data`);
     if (!response.ok) {
       throw new Error(`Failed to fetch weather history: ${response.statusText}`);
     }
@@ -57,7 +73,7 @@ export async function calculatePlantHealthIndex(sensorData: SensorData | null, w
   }
   
   export async function fetchSunHistory(): Promise<SunData[]> {
-    const response = await fetch(`${API_BASE_URL}/sun-history`);
+    const response = await fetch(`${API_BASE_URL}/sun-data/recent`);
     if (!response.ok) {
       throw new Error(`Failed to fetch sun history: ${response.statusText}`);
     }
@@ -78,5 +94,32 @@ export async function calculatePlantHealthIndex(sensorData: SensorData | null, w
       throw new Error(`Failed to fetch forecast: ${response.statusText}`);
     }
     console.log("Forecast Response:", response);
+    return await response.json();
+  }
+
+
+  export async function fetchCorrelation() {
+    const response = await fetch(`${API_BASE_URL}/correlation-matrix`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch correlation matrix: ${response.statusText}`);
+    }
+    console.log("Correlation Response:", response);
+    return await response.json();
+  }
+
+  export async function fetchWaterRecommendation(sensorData: SensorData | null, rainDatetime: string | null) {
+    if (!sensorData) return { message: 'No recommendation available' };
+  
+    const response = await fetch(`${API_BASE_URL}/watering-recommendation`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        temperature: sensorData.temperature,
+        moisture: sensorData.soil_moisture,
+        lux: sensorData.lux,
+        datetime_local: rainDatetime
+      })
+    });
+  
     return await response.json();
   }

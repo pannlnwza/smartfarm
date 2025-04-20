@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional, List
 from pydantic import BaseModel
 
 class SensorData(BaseModel):
@@ -33,3 +34,9 @@ class HealthPredictionInput(BaseModel):
 class HealthScore(BaseModel):
     timestamp: datetime
     health_status: str
+
+class WateringRequest(BaseModel):
+    moisture: float
+    temperature: float
+    lux: float
+    datetime_local: str | None

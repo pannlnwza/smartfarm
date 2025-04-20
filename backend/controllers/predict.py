@@ -1,12 +1,13 @@
 import pandas as pd
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Body
 from typing import List
-from ..models import HealthPredictionInput, HealthScore
+from ..models import HealthPredictionInput, HealthScore, WateringRequest
 from pathlib import Path
 import joblib
 from ..database import Database
 from datetime import datetime, timezone, timedelta
 import httpx
+
 
 router = APIRouter()
 
@@ -130,23 +131,46 @@ async def when_will_it_rain():
         raise HTTPException(status_code=500, detail=f"Failed to fetch weather: {str(e)}")
     
 
-@router.post("/predict-health-2")
-async def predict_health(data: HealthPredictionInput):
-    input_data = pd.DataFrame([{
-        "ambient_temperature": data.temperature,
-        "soil_moisture": data.soil_moisture,
-        "humidity": data.humidity,
-        "light_intensity": data.light_intensity
-    }])
+@router.post("/watering-recommendation")
+async def watering_recommendation(request: WateringRequest = Body(...)):
+    moisture = request.moisture
+    temperature = request.temperature
+    lux = request.lux
+    datetime_local = request.datetime_local
 
-    try:
-        input_scaled = scaler.transform(input_data)
-        status = model.predict(input_scaled)[0]
+    hours_until_rain = None
 
-    
-        return {
-            "health_status": status
-        }
+    if datetime_local:
+        try:
+            rain_dt = datetime.strptime(datetime_local, "%Y-%m-%dT%H:%M:%S")
+            now = datetime.now()
+            delta = rain_dt - now
+            hours_until_rain = delta.total_seconds() / 3600
+        except ValueError:
+            return {"status": "error", "message": "Invalid datetime format"}
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Prediction error: {e}")
+    # Watering logic
+    if hours_until_rain is not None and hours_until_rain <= 24:
+        if moisture >= 50:
+            advice = "No need to water. Rain is coming and soil is moist."
+        else:
+            advice = "Hold off watering. Rain is expected soon."
+    else:
+        if moisture < 30:
+            advice = "Water now. Soil is dry and no rain expected."
+        elif temperature > 35 or lux > 10000:
+            advice = "Water lightly. Conditions are hot or very sunny."
+        elif moisture < 50:
+            advice = "Optional watering. Soil is moderately moist."
+        else:
+            advice = "No watering needed. Soil is healthy."
+
+    return {
+        "status": "ok",
+        "moisture": moisture,
+        "temperature": temperature,
+        "lux": lux,
+        "datetime_local": datetime_local,
+        "hours_until_rain": hours_until_rain,
+        "recommendation": advice
+    }
