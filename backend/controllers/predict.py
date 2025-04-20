@@ -18,35 +18,43 @@ scaler = joblib.load(scaler_path)
 
 @router.post("/predict-health")
 async def predict_health(data: HealthPredictionInput):
-    input_data = pd.DataFrame([{
-        "temperature": data.temperature,
-        "soil_moisture": data.soil_moisture,
-        "humidity": data.humidity,
-        "light_intensity": data.light_intensity
-    }])
-
     try:
-        input_scaled = scaler.transform(input_data)
-        score = model.predict(input_scaled)[0]
+        check_query = """
+        SELECT health_status, ts 
+        FROM plant_health 
+        WHERE sensor_id = %s 
+        ORDER BY ts DESC 
+        LIMIT 1
+        """
+        existing = Database.fetch_one(check_query, (data.sensor_id,))
 
-        status = "Unhealthy"
-        if score >= 80:
-            status = "Excellent"
-        elif score >= 60:
-            status = "Healthy"
-        elif score >= 40:
-            status = "Fair"
+        if existing:
+            return {
+                "health_status": existing["health_status"],
+                "message": "Retrieved from history",
+                "timestamp": existing["ts"]
+            }
+
+        input_data = pd.DataFrame([{
+            "ambient_temperature": data.temperature,
+            "soil_moisture": data.soil_moisture,
+            "humidity": data.humidity,
+            "light_intensity": data.light_intensity
+        }])
+
+        input_scaled = scaler.transform(input_data)
+        status = model.predict(input_scaled)[0]
 
         if data.save_to_history:
             save_query = """
-            INSERT INTO plant_health (ts, health_score, health_status)
+            INSERT INTO plant_health (ts, sensor_id, health_status)
             VALUES (%s, %s, %s)
             """
-            Database.execute_insert(save_query, (datetime.now(), round(score, 1), status))
+            Database.execute_insert(save_query, (datetime.now(), data.sensor_id, status))
 
         return {
-            "health_score": round(score, 1),
-            "health_status": status
+            "health_status": status,
+            "message": "Predicted and saved" if data.save_to_history else "Predicted"
         }
 
     except Exception as e:
@@ -55,7 +63,7 @@ async def predict_health(data: HealthPredictionInput):
 @router.get("/health-history", response_model=List[HealthScore])
 async def get_health_history():
     query = """
-        SELECT ts as timestamp, health_score, health_status
+        SELECT ts as timestamp, health_status
         FROM plant_health
         WHERE ts > DATE_SUB(NOW(), INTERVAL 24 HOUR)
         ORDER BY ts ASC
@@ -116,7 +124,29 @@ async def when_will_it_rain():
                     }
                 }
 
-        return {"message": "No rain expected in the next 5 days."}
+        return {"forecast": None}
 
     except httpx.HTTPError as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch weather: {str(e)}")
+    
+
+@router.post("/predict-health-2")
+async def predict_health(data: HealthPredictionInput):
+    input_data = pd.DataFrame([{
+        "ambient_temperature": data.temperature,
+        "soil_moisture": data.soil_moisture,
+        "humidity": data.humidity,
+        "light_intensity": data.light_intensity
+    }])
+
+    try:
+        input_scaled = scaler.transform(input_data)
+        status = model.predict(input_scaled)[0]
+
+    
+        return {
+            "health_status": status
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Prediction error: {e}")

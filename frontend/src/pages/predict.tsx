@@ -45,6 +45,7 @@ export default function PredictPage() {
       const dataToSend = {
         ...formData,
         save_to_history: false,
+        sensor_id: 0,
       }
       const response = await fetch('http://localhost:8000/api/predict-health', {
         method: 'POST',
@@ -227,62 +228,20 @@ export default function PredictPage() {
               
               {predictionResult ? (
                 <div className="flex flex-col items-center justify-center h-64">
-                  <div className="relative mb-6">
-                    {/* Health Score Gauge */}
-                    <svg className="w-40 h-40" viewBox="0 0 120 120">
-                      {/* Background Circle */}
-                      <circle
-                        cx="60"
-                        cy="60"
-                        r="54"
-                        fill="none"
-                        stroke="#e5e7eb"
-                        strokeWidth="12"
-                      />
-                      
-                      {/* Score Arc */}
-                      <circle
-                        cx="60"
-                        cy="60"
-                        r="54"
-                        fill="none"
-                        stroke={predictionResult.health_score >= 80 ? "#10b981" : 
-                               predictionResult.health_score >= 60 ? "#84cc16" : 
-                               predictionResult.health_score >= 40 ? "#eab308" : "#ef4444"}
-                        strokeWidth="12"
-                        strokeDasharray={`${(predictionResult.health_score / 100) * 339} 339`}
-                        strokeDashoffset={339 * 0.25}
-                        transform="rotate(-90 60 60)"
-                      />
-                      
-                      {/* Score Text */}
-                      <text
-                        x="60"
-                        y="60"
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                        fontSize="24"
-                        fontWeight="bold"
-                        fill="#374151"
-                      >
-                        {predictionResult.health_score}
-                      </text>
-                    </svg>
-                  </div>
-                  
+                
                   <div className={`text-center px-4 py-2 rounded-full text-white font-medium ${
-                    predictionResult.health_status === 'Excellent' ? 'bg-green-500' :
-                    predictionResult.health_status === 'Healthy' ? 'bg-lime-500' :
-                    predictionResult.health_status === 'Fair' ? 'bg-yellow-500' : 'bg-red-500'
+                    predictionResult.health_status === 'Healthy' ? 'bg-green-500' :
+                    predictionResult.health_status === 'Moderate Stress' ? 'bg-yellow-500' :
+                    predictionResult.health_status === 'High Stress' ? 'bg-red-500' : ''
                   }`}>
                     {predictionResult.health_status}
                   </div>
                   
                   <div className="mt-4 text-center text-sm text-gray-600">
-                    {predictionResult.health_status === 'Excellent' ? 'Perfect growing conditions!' :
-                     predictionResult.health_status === 'Healthy' ? 'Good conditions for plant growth.' :
-                     predictionResult.health_status === 'Fair' ? 'Some parameters need improvement.' :
-                     'Plants may struggle under these conditions.'}
+                    {predictionResult.health_status === 'Healthy' ? 'Perfect growing conditions!' :
+                     predictionResult.health_status === 'Moderate Stress' ? 'Some parameters need improvement.' :
+                     predictionResult.health_status === 'High Stress' ? 'Plants may struggle under these conditions.' :
+                     ''}
                   </div>
                 </div>
               ) : (

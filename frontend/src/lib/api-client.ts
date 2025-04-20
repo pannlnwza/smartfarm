@@ -37,6 +37,7 @@ export async function calculatePlantHealthIndex(sensorData: SensorData | null, w
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        sensor_id: sensorData.id,
         temperature: sensorData.temperature,
         soil_moisture: sensorData.soil_moisture,
         humidity: humidity,

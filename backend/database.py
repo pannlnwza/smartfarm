@@ -50,4 +50,17 @@ class Database:
         finally:
             cursor.close()
             conn.close()
+
+    @staticmethod
+    def fetch_one(query: str, params: Tuple[Any, ...]):
+        conn = Database.get_connection()
+        try:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(query, params)
+            return cursor.fetchone()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+        finally:
+            cursor.close()
+            conn.close()
             

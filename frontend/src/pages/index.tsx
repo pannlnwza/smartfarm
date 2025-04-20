@@ -1,6 +1,6 @@
 // src/pages/dashboard.tsx
 import { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, TooltipProps } from 'recharts';
 import { fetchSensorData, fetchWeatherData, fetchWeatherHistory, fetchSunData, fetchSunHistory, calculatePlantHealthIndex, fetchHealthHistory, fetchForecast } from '@/lib/api-client';
 import { DashboardData, SensorData, WeatherData } from '@/models/dashboard';
 import { Geist, Geist_Mono } from "next/font/google";
@@ -212,11 +212,16 @@ export default function Dashboard() {
     rain: reading.rain_1h,
     cloudiness: reading.cloudiness
   }));
+
+  const statusToNumeric = {
+    "Healthy": 2,
+    "Moderate Stress": 1,
+    "High Stress": 0
+  };
   
   const healthChartData = filterDataByTimeRange(dashboardData.healthHistory).map(reading => ({
     name: formatTimeForChart(reading.timestamp),
-    score: reading.health_score,
-    status: reading.health_status
+    status: statusToNumeric[reading.health_status as keyof typeof statusToNumeric]
   }));
 
   const sunChartData = filterDataByTimeRange(dashboardData.sunHistory).map(reading => ({
@@ -331,6 +336,54 @@ export default function Dashboard() {
     return Math.min(100, Math.max(0, percent));
   }
 
+  interface HealthChartDataPoint {
+    name: string;
+    status: number;
+    [key: string]: any;
+  }
+  
+  interface PlantHealth {
+    health_status: 'Healthy' | 'Moderate Stress' | 'High Stress';
+    [key: string]: any;
+  }
+  
+  interface PlantHealthCardProps {
+    plantHealth: PlantHealth;
+    healthChartData: HealthChartDataPoint[];
+  }
+  
+  // Custom tooltip component with proper types
+  const CustomTooltip: React.FC<TooltipProps<number, string>> = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      const value = payload[0].value;
+      let status = "Unknown";
+      let color = "gray";
+      
+      if (value === 0) {
+        status = "High Stress";
+        color = "#ef4444"; // red-500
+      } else if (value === 1) {
+        status = "Moderate Stress";
+        color = "#eab308"; // yellow-500
+      } else if (value === 2) {
+        status = "Healthy";
+        color = "#22c55e"; // green-500
+      }
+      
+      return (
+        <div className="bg-white p-2 shadow-md rounded border border-gray-200">
+          <p className="text-sm">{label}</p>
+          <p className="font-semibold" style={{ color }}>
+            {status}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  
+
   return (
     <div className={`${geistSans.className} ${geistMono.className} bg-gray-50 text-gray-800 p-6 w-full min-h-screen`}>
       {/* Dashboard Header */}
@@ -374,31 +427,57 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Plant Health Index Card */}
-        <div className="bg-white p-4 rounded-lg shadow-md">
-          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-700">Plant Health Index</h2>
-          </div>
-          <div className="text-center">
-            <div className="text-5xl font-bold mb-2 text-gray-800">{plantHealth.health_score}</div>
-            <div className={`inline-block px-4 py-1 rounded-full text-sm font-semibold text-white ${
-              plantHealth.health_status === 'Excellent' ? 'bg-green-500' :
-              plantHealth.health_status === 'Healthy' ? 'bg-lime-500' :
-              plantHealth.health_status === 'Fair' ? 'bg-yellow-500' : 'bg-red-500'
-            }`}>
-              {plantHealth.health_status}
-            </div>
-          </div>
-          <div className="h-48 w-full mt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={healthChartData}>
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
-                <Tooltip />
-                <Line type="monotone" dataKey="score" stroke="#10b981" dot={false} strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        <div className="bg-white p-6 rounded-lg shadow-md">
+      <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
+        <h2 className="text-lg font-medium text-gray-700">Plant Health Status</h2>
+      </div>
+      
+      <div className="flex flex-col items-center justify-center mb-6">
+ 
+        <span className={`text-lg font-semibold ${
+          plantHealth.health_status === 'Healthy' ? 'text-green-600' :
+          plantHealth.health_status === 'Moderate Stress' ? 'text-yellow-600' :
+          'text-red-600'
+        }`}>
+          {plantHealth.health_status}
+        </span>
+      </div>
+      
+      <div className="h-48 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={healthChartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+            <XAxis 
+              dataKey="name" 
+              tick={{ fontSize: 10 }} 
+              axisLine={{ stroke: '#e5e7eb' }}
+              tickLine={false}
+            />
+            <YAxis 
+              tick={{ fontSize: 10 }} 
+              domain={[0, 2]}
+              tickFormatter={(value: number) => 
+                value === 2 ? 'Healthy' : value === 1 ? 'Moderate Stress' : value === 0 ? 'High Stress' : ''
+              }
+              axisLine={{ stroke: '#e5e7eb' }}
+              tickLine={false}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <ReferenceLine y={2} stroke="#22c55e" strokeDasharray="3 3" />
+            <ReferenceLine y={1} stroke="#eab308" strokeDasharray="3 3" />
+            <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" />
+            <Line 
+              type="monotone" 
+              dataKey="status" 
+              stroke="#6366f1" 
+              strokeWidth={2.5}
+              dot={{ stroke: '#6366f1', strokeWidth: 2, r: 4, fill: 'white' }}
+              activeDot={{ stroke: '#6366f1', strokeWidth: 2, r: 6, fill: 'white' }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+
 
         {/* Soil & Water Card */}
         <div className="bg-white p-4 rounded-lg shadow-md">
@@ -596,46 +675,50 @@ export default function Dashboard() {
         </div>
 
         {/* Forecast */}
-        <div className="bg-white p-4 rounded-lg shadow-md">
-          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
-            <h2 className="text-lg font-medium">Rain Forecast</h2>
-            {getWeatherIcon(dashboardData.forecast.forecast.weather)}
+<div className="bg-white p-4 rounded-lg shadow-md">
+  <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
+    <h2 className="text-lg font-medium">Rain Forecast</h2>
+    {dashboardData.forecast.forecast && getWeatherIcon(dashboardData.forecast.forecast.weather)}
+  </div>
+
+  <div className="mb-4">
+    {dashboardData.forecast.forecast ? (
+      <>
+        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(dashboardData.forecast.status)}`}>
+          {toTitleCase(dashboardData.forecast.status.replace('_', ' '))}
+        </span>
+
+        <div className="text-sm text-gray-600 mt-2">{dashboardData.forecast.summary.message}</div>
+
+        <div className="grid grid-cols-2 gap-4 mb-4 mt-4">
+          <div className="text-center p-2 bg-gray-50 rounded-lg">
+            <div className="text-sm text-gray-400 mb-1">Expected Rain</div>
+            <div className="text-xl font-bold">{dashboardData.forecast.forecast.rain_mm} mm</div>
           </div>
-
-        <div className="mb-4">
-          <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(dashboardData.forecast.status)}`}>
-            {toTitleCase(dashboardData.forecast.status.replace('_', ' '))}
-          </span>
-          <div className="text-sm text-gray-600 mt-2">{dashboardData.forecast.summary.message}</div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="text-center p-2 bg-gray-50 rounded-lg">
-          <div className="text-sm text-gray-400 mb-1">Expected Rain</div>
-          <div className="text-xl font-bold">{dashboardData.forecast.forecast.rain_mm} mm</div>
-        </div>
-        <div className="text-center p-2 bg-gray-50 rounded-lg">
-          <div className="text-sm text-gray-400 mb-1">Condition</div>
-          <div className="text-xl font-bold">{toTitleCase(dashboardData.forecast.forecast.description)}</div>
-        </div>
-        <div className="text-center p-2 bg-gray-50 rounded-lg">
-          <div className="text-sm text-gray-400 mb-1">Time Until Rain</div>
-          <div className="text-xl font-bold">
-            {dashboardData.forecast.summary.time_until_rain.days}d {dashboardData.forecast.summary.time_until_rain.hours}h
+          <div className="text-center p-2 bg-gray-50 rounded-lg">
+            <div className="text-sm text-gray-400 mb-1">Condition</div>
+            <div className="text-xl font-bold">{toTitleCase(dashboardData.forecast.forecast.description)}</div>
+          </div>
+          <div className="text-center p-2 bg-gray-50 rounded-lg">
+            <div className="text-sm text-gray-400 mb-1">Time Until Rain</div>
+            <div className="text-xl font-bold">
+              {dashboardData.forecast.summary.time_until_rain.days}d {dashboardData.forecast.summary.time_until_rain.hours}h
+            </div>
+          </div>
+          <div className="text-center p-2 bg-gray-50 rounded-lg">
+            <div className="text-sm text-gray-400 mb-1">Forecast Time</div>
+            <div className="text-base font-medium text-gray-700">{dashboardData.forecast.forecast.datetime_local}</div>
           </div>
         </div>
+      </>
+    ) : (
+      <div className="text-center p-2 bg-gray-50 rounded-lg text-gray-500 text-sm">
+        No rain is expected in the next 5 days.
+      </div>
+    )}
+  </div>
+</div>
 
-        <div className="text-center p-2 bg-gray-50 rounded-lg">
-        <div className="text-sm text-gray-400 mb-1">Forecast Time</div>
-          <div className="text-base font-medium text-gray-700">{dashboardData.forecast.forecast.datetime_local}</div>
-        </div>
-
-        
-
-    </div>
-
-     
-    </div>
         {/* Alerts Card */}
         <div className="bg-white p-4 rounded-lg shadow-md md:col-span-2 lg:col-span-3">
           <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">

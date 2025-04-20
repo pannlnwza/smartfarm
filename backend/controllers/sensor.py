@@ -8,7 +8,7 @@ router = APIRouter()
 @router.get("/sensor-data", response_model=List[SensorData])
 async def get_sensor_data():
     query = """
-        SELECT ts as timestamp, lux, temperature, moisture as soil_moisture
+        SELECT id, ts as timestamp, lux, temperature, moisture as soil_moisture
         FROM smartfarm 
         WHERE ts > DATE_SUB(NOW(), INTERVAL 24 HOUR)
         ORDER BY ts ASC

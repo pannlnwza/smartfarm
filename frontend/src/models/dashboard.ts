@@ -1,4 +1,5 @@
 export interface SensorData {
+    id: number;
     timestamp: string;
     lux: number;
     temperature: number;

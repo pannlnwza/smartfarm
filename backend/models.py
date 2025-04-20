@@ -2,6 +2,7 @@ from datetime import datetime
 from pydantic import BaseModel
 
 class SensorData(BaseModel):
+    id: int
     timestamp: datetime
     lux: float
     temperature: float
@@ -23,6 +24,7 @@ class SunData(BaseModel):
 
 class HealthPredictionInput(BaseModel):
     temperature: float
+    sensor_id: int
     soil_moisture: float
     light_intensity: float
     humidity: float
@@ -30,5 +32,4 @@ class HealthPredictionInput(BaseModel):
 
 class HealthScore(BaseModel):
     timestamp: datetime
-    health_score: float
     health_status: str
