@@ -86,7 +86,7 @@ export default function PredictPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Form Section */}
           <div className="md:col-span-2">
-            <div className="bg-white shadow-lg rounded-lg p-6">
+            <div className="bg-white shadow-sm rounded-lg p-6">
               <h2 className="text-xl font-semibold mb-6 text-gray-700">Plant Health Prediction</h2>
               
               <form onSubmit={handleSubmit}>
@@ -184,8 +184,8 @@ export default function PredictPage() {
                         id="light_intensity"
                         name="light_intensity"
                         min="0"
-                        max="100000"
-                        step="1000"
+                        max="10000"
+                        step="100"
                         value={formData.light_intensity}
                         onChange={handleInputChange}
                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
@@ -196,8 +196,8 @@ export default function PredictPage() {
                     </div>
                     <div className="flex justify-between text-xs text-gray-500 mt-1">
                       <span>0</span>
-                      <span>50k</span>
-                      <span>100k</span>
+                      <span>5k</span>
+                      <span>10k</span>
                     </div>
                   </div>
                 </div>
@@ -206,7 +206,7 @@ export default function PredictPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-200"
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-sm transition duration-200"
                   >
                     {loading ? 'Calculating...' : 'Predict Plant Health'}
                   </button>
@@ -223,7 +223,7 @@ export default function PredictPage() {
           
           {/* Results Section */}
           <div className="md:col-span-1">
-            <div className="bg-white shadow-lg rounded-lg p-6 h-full">
+            <div className="bg-white shadow-sm rounded-lg p-6">
               <h2 className="text-xl font-semibold mb-6 text-gray-700">Prediction Results</h2>
               
               {predictionResult ? (
