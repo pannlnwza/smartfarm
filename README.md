@@ -61,14 +61,21 @@ cd smartfarm
    pip install -r requirements.txt
    ```
 
-5. Database configuration is already set in `config.py` with the following default settings:
-   ```python
-   DB_HOST: str = "iot.cpe.ku.ac.th"
-   DB_USER: str = "b6610545901"
-   DB_PASSWORD: str = "pattapon.g@ku.th"
-   DB_NAME: str = "b6610545901"
+5. Create your configuration file from the template:
+   ```bash
+   cp config.py.example config.py
    ```
-   Update these values if needed for your environment.
+
+6. Edit `config.py` with your database credentials and API keys:
+   ```python
+   DB_HOST: str = "your_db_host"
+   DB_USER: str = "your_username"
+   DB_PASSWORD: str = "your_password"
+   DB_NAME: str = "your_database"
+   CORS_ORIGINS: list = ["http://localhost:3000"]
+   OPENWEATHER_API_KEY: str = "your_openweather_api_key"
+   ```
+   You'll need to obtain an API key from [OpenWeatherMap](https://openweathermap.org/api) for weather forecasts.
 
 ### Frontend Setup
 
@@ -105,7 +112,7 @@ cd smartfarm
 
 3. Start the FastAPI server:
    ```bash
-   uvicorn main:app --reload
+   fastapi run main.py
    ```
 
    The API will be available at `http://localhost:8000`.
@@ -181,3 +188,6 @@ The frontend includes several visualization components:
 - Plant health history
 - Light intensity patterns
 
+## Team Members
+- Pattapon Gowanit 6610545901
+- Chanotai Mukdakul 6610545782
