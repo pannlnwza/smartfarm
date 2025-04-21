@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
-from ..models import SensorData
-from ..database import Database
+from models import SensorData
+from database import Database
 from datetime import datetime
 import numpy as np
 

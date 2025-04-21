@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
-from ..models import WeatherData
+from models import WeatherData
 from typing import List
-from ..database import Database
+from database import Database
 
 router = APIRouter()
 

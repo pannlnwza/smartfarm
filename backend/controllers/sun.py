@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
-from ..models import SunData
-from ..database import Database
+from models import SunData
+from database import Database
 
 router = APIRouter()
 

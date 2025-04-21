@@ -11,8 +11,8 @@ if not os.path.exists(os.path.join(os.path.dirname(__file__), "config.py")):
     print("Example command: cp config.py.example config.py")
     sys.exit(1)
 
-from .config import CORS_ORIGINS
-from .controllers import sensor, weather, sun, predict
+from config import CORS_ORIGINS
+from controllers import sensor, weather, sun, predict
 
 app = FastAPI(title="Soil Monitoring API")
 
@@ -34,4 +34,3 @@ app.include_router(predict.router, prefix="/api", tags=["predict"])
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
-    

@@ -1,6 +1,6 @@
 import mysql.connector
 from fastapi import HTTPException
-from .config import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME
+from config import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME
 from typing import Any, Tuple
 
 class Database:

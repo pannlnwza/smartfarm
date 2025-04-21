@@ -1,12 +1,12 @@
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Body
 from typing import List
-from ..models import HealthPredictionInput, HealthScore, WateringRequest, MoisturePredictionInput
+from models import HealthPredictionInput, HealthScore, WateringRequest, MoisturePredictionInput
 from pathlib import Path
 import joblib
-from ..database import Database
+from database import Database
 from datetime import datetime, timezone, timedelta
-from ..config import OPENWEATHER_API_KEY
+from config import OPENWEATHER_API_KEY
 import httpx
 
 
