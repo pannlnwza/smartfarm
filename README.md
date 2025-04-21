@@ -112,7 +112,7 @@ cd smartfarm
 
 3. Start the FastAPI server:
    ```bash
-   fastapi run main.py
+   uvicorn main:app --reload
    ```
 
    The API will be available at `http://localhost:8000`.
