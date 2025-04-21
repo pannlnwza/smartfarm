@@ -6,6 +6,7 @@ from pathlib import Path
 import joblib
 from ..database import Database
 from datetime import datetime, timezone, timedelta
+from ..config import OPENWEATHER_API_KEY
 import httpx
 
 
@@ -84,7 +85,7 @@ def convert_to_thai_time(utc_timestamp, timezone_offset):
 @router.get("/when-will-it-rain")
 async def when_will_it_rain():
     url = (
-        f"https://api.openweathermap.org/data/2.5/forecast?lat=13.8657&lon=100.462&appid=39f71571c877eea755c37feab37e4267&units=metric"
+        f"https://api.openweathermap.org/data/2.5/forecast?lat=13.8657&lon=100.462&appid={OPENWEATHER_API_KEY}&units=metric"
     )
 
     try:
