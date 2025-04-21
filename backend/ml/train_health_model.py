@@ -37,5 +37,5 @@ print("Confusion Matrix:")
 print(confusion_matrix(y_test, y_pred))
 
 # Save the model and scaler
-joblib.dump(model, "plant_health_score_model_2.pkl")
-joblib.dump(scaler, "scaler_2.pkl")
+joblib.dump(model, "plant_health_score_model.pkl")
+joblib.dump(scaler, "scaler.pkl")

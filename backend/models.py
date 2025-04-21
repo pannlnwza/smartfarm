@@ -40,3 +40,8 @@ class WateringRequest(BaseModel):
     temperature: float
     lux: float
     datetime_local: str | None
+
+class MoisturePredictionInput(BaseModel):
+    temperature: float
+    humidity: float
+    light_intensity: float

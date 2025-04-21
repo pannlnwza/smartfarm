@@ -1,7 +1,7 @@
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Body
 from typing import List
-from ..models import HealthPredictionInput, HealthScore, WateringRequest
+from ..models import HealthPredictionInput, HealthScore, WateringRequest, MoisturePredictionInput
 from pathlib import Path
 import joblib
 from ..database import Database
@@ -11,14 +11,14 @@ import httpx
 
 router = APIRouter()
 
-model_path = Path(__file__).resolve().parent.parent / "ml" / "plant_health_score_model.pkl"
-scaler_path = Path(__file__).resolve().parent.parent / "ml" / "scaler.pkl"
-model = joblib.load(model_path)
-scaler = joblib.load(scaler_path)
-
-
 @router.post("/predict-health")
 async def predict_health(data: HealthPredictionInput):
+
+    model_path = Path(__file__).resolve().parent.parent / "ml" / "plant_health_score_model.pkl"
+    scaler_path = Path(__file__).resolve().parent.parent / "ml" / "scaler.pkl"
+    model = joblib.load(model_path)
+    scaler = joblib.load(scaler_path)
+
     try:
         check_query = """
         SELECT health_status, ts 
@@ -137,19 +137,19 @@ async def watering_recommendation(request: WateringRequest = Body(...)):
     temperature = request.temperature
     lux = request.lux
     datetime_local = request.datetime_local
+    print(datetime_local)
 
     hours_until_rain = None
 
     if datetime_local:
         try:
-            rain_dt = datetime.strptime(datetime_local, "%Y-%m-%dT%H:%M:%S")
+            rain_dt = datetime.strptime(datetime_local, "%Y-%m-%d %H:%M:%S")
             now = datetime.now()
             delta = rain_dt - now
             hours_until_rain = delta.total_seconds() / 3600
         except ValueError:
             return {"status": "error", "message": "Invalid datetime format"}
 
-    # Watering logic
     if hours_until_rain is not None and hours_until_rain <= 24:
         if moisture >= 50:
             advice = "No need to water. Rain is coming and soil is moist."
@@ -157,7 +157,10 @@ async def watering_recommendation(request: WateringRequest = Body(...)):
             advice = "Hold off watering. Rain is expected soon."
     else:
         if moisture < 30:
-            advice = "Water now. Soil is dry and no rain expected."
+            if hours_until_rain is not None:
+                advice = f"The soil is very dry, and rain isn't expected for another {hours_until_rain:.0f} hours. Better to water your plants now to keep them healthy."
+            else:
+                advice = "The soil is very dry, and there's no rain forecasted. It's a good time to water your plants."
         elif temperature > 35 or lux > 10000:
             advice = "Water lightly. Conditions are hot or very sunny."
         elif moisture < 50:
@@ -174,3 +177,30 @@ async def watering_recommendation(request: WateringRequest = Body(...)):
         "hours_until_rain": hours_until_rain,
         "recommendation": advice
     }
+
+
+@router.post("/predict-moisture")
+async def predict_health(data: MoisturePredictionInput):
+
+    model_path = Path(__file__).resolve().parent.parent / "ml" / "plant_moisture_model.pkl"
+    scaler_path = Path(__file__).resolve().parent.parent / "ml" / "scaler_moisture.pkl"
+    model = joblib.load(model_path)
+    scaler = joblib.load(scaler_path)
+
+    try:
+        input_data = pd.DataFrame([{
+            "ambient_temperature": data.temperature,
+            "humidity": data.humidity,
+            "light_intensity": data.light_intensity
+        }])
+
+        input_scaled = scaler.transform(input_data)
+        moisture = model.predict(input_scaled)[0]
+
+        return {
+            "soil_moisture": moisture,
+            "message": "Predicted"
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Prediction error: {e}")

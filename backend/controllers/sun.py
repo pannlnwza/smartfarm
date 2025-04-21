@@ -37,13 +37,13 @@ async def get_sun_data():
     
     return formatted_data
 
-@router.get("/sun-data/recent", response_model=List[SunData])
+@router.get("/sun-data/latest", response_model=List[SunData])
 async def get_sun_history():
     query = """
         SELECT ts as timestamp, sunrise, sunset, solar_noon, day_length 
         FROM sunrise_sunset 
         WHERE ts > DATE_SUB(NOW(), INTERVAL 24 HOUR)
-        ORDER BY ts ASC
+        ORDER BY ts DESC
     """
     data = Database.execute_query(query)
     

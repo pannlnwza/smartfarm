@@ -247,152 +247,10 @@ export default function StatisticsPage() {
                   />
                 </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-5">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
                 
               {/* Sensor Data Trends */}
               <div className="lg:col-span-2">
-                <div className="bg-white shadow-sm rounded-lg p-6">
-                  <h2 className="text-xl font-semibold mb-6 text-gray-700">Sensor Readings (24h)</h2>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={sensorData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        dataKey="timestamp" 
-                        tickFormatter={formatXAxis} 
-                        interval={Math.ceil(sensorData.length / 8)}
-                      />
-                      <YAxis yAxisId="left" />
-                      <YAxis yAxisId="right" orientation="right" />
-                      <Tooltip 
-                        formatter={(value: number, name: string) => {
-                          if (name === 'temperature') return [`${value}°C`, 'Temperature'];
-                          if (name === 'soil_moisture') return [`${value}%`, 'Soil Moisture'];
-                          if (name === 'lux') return [`${value} lux`, 'Light Intensity'];
-                          return [value, name];
-                        }}
-                        labelFormatter={(label) => new Date(label).toLocaleString()}
-                      />
-                      <Legend />
-                      <Line 
-                        yAxisId="left"
-                        type="monotone" 
-                        dataKey="temperature" 
-                        name="Temperature" 
-                        stroke="#8884d8" 
-                        activeDot={{ r: 6 }} 
-                      />
-                      <Line 
-                        yAxisId="left"
-                        type="monotone" 
-                        dataKey="soil_moisture" 
-                        name="Soil Moisture" 
-                        stroke="#82ca9d" 
-                      />
-                      <Line 
-                        yAxisId="right"
-                        type="monotone" 
-                        dataKey="lux" 
-                        name="Light Intensity" 
-                        stroke="#ffc658" 
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            
-              {/* Health Status Distribution */}
-              <div className="lg:col-span-1">
-                <div className="bg-white shadow-sm rounded-lg p-6">
-                  <h2 className="text-xl font-semibold mb-6 text-gray-700">Plant Health Distribution</h2>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={healthDistribution}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        nameKey="name"
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {healthDistribution.map((entry, index) => (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={HEALTH_COLORS[entry.name as keyof typeof HEALTH_COLORS] || '#9e9e9e'} 
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => [`${value} readings`, 'Count']} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                
-            
-              </div>
-            </div>
-            
-            {/* Weather Data */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-              <div className="lg:col-span-3">
-                <div className="bg-white shadow-sm rounded-lg p-6">
-                  <h2 className="text-xl font-semibold mb-6 text-gray-700">Weather Conditions (24h)</h2>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={weatherData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        dataKey="timestamp" 
-                        tickFormatter={formatXAxis} 
-                        interval={Math.ceil(weatherData.length / 8)}
-                      />
-                      <YAxis yAxisId="left" />
-                      <YAxis yAxisId="right" orientation="right" />
-                      <Tooltip 
-                        formatter={(value: number, name: string) => {
-                          if (name === 'humidity') return [`${value}%`, 'Humidity'];
-                          if (name === 'pressure') return [`${value} hPa`, 'Pressure'];
-                          if (name === 'rain_1h') return [`${value} mm`, 'Rain (1h)'];
-                          if (name === 'cloudiness') return [`${value}%`, 'Cloudiness'];
-                          return [value, name];
-                        }}
-                        labelFormatter={(label) => new Date(label).toLocaleString()}
-                      />
-                      <Legend />
-                      <Line 
-                        yAxisId="left"
-                        type="monotone" 
-                        dataKey="humidity" 
-                        name="Humidity" 
-                        stroke="#2196f3" 
-                      />
-                      <Line 
-                        yAxisId="right"
-                        type="monotone" 
-                        dataKey="pressure" 
-                        name="Pressure" 
-                        stroke="#f44336" 
-                      />
-                      <Line 
-                        yAxisId="left"
-                        type="monotone" 
-                        dataKey="rain_1h" 
-                        name="Rain (1h)" 
-                        stroke="#9c27b0" 
-                      />
-                      <Line 
-                        yAxisId="left"
-                        type="monotone" 
-                        dataKey="cloudiness" 
-                        name="Cloudiness" 
-                        stroke="#607d8b" 
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-              
-              <div className="lg:col-span-3">
                 <div className="bg-white shadow-sm rounded-lg p-6">
                 <h2 className="text-xl font-semibold mb-4 text-gray-700">Soil Moisture vs {selectedComparison.label}</h2>
                 
@@ -412,6 +270,7 @@ export default function StatisticsPage() {
                 </select>
 
                 <div className="w-full h-[400px]">
+                    
                     <ResponsiveContainer>
                     <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                         <CartesianGrid />
@@ -434,9 +293,71 @@ export default function StatisticsPage() {
                     </ScatterChart>
                     </ResponsiveContainer>
                 </div>
+                <div className="mt-4 text-sm text-gray-600">
+                    {selectedComparison.key === "temperature" && (
+                        <p>
+                        Higher temperatures typically increase evaporation rates, which can reduce soil moisture.
+                        </p>
+                    )}
+                    {selectedComparison.key === "lux" && (
+                        <p>
+                        Light intensity (lux) affects plant transpiration. More light may lead to faster drying of soil.
+                        </p>
+                    )}
+                    {selectedComparison.key === "rain_1h" && (
+                        <p>
+                        Rainfall directly adds water to the soil, often increasing soil moisture significantly.
+                        </p>
+                    )}
+                    {selectedComparison.key === "humidity" && (
+                        <p>
+                        Higher humidity can slow down evaporation, helping retain soil moisture for longer periods.
+                        </p>
+                    )}
+                </div>
                 </div>
               </div>
-
+    
+              {/* Health Status Distribution */}
+              <div className="lg:col-span-1">
+                <div className="bg-white shadow-sm rounded-lg p-6">
+                  <h2 className="text-xl font-semibold mb-6 text-gray-700">Plant Health Distribution</h2>
+                  <ResponsiveContainer width="100%" height={485}>
+                    <PieChart>
+                        <Pie
+                        data={healthDistribution}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                        nameKey="name"
+                        label={false}
+                        >
+                        {healthDistribution.map((entry, index) => (
+                            <Cell 
+                            key={`cell-${index}`} 
+                            fill={HEALTH_COLORS[entry.name as keyof typeof HEALTH_COLORS] || '#9e9e9e'} 
+                            />
+                        ))}
+                        </Pie>
+                        <Tooltip 
+                        contentStyle={{ fontSize: '12px', fontWeight: 'normal' }}
+                        formatter={(value, name, props) => {
+                            const total = healthDistribution.reduce((sum, entry) => sum + entry.value, 0);
+                            const percent = ((value / total) * 100).toFixed(0);
+                            return [`${name}: ${percent}%`, 'Percentage'];
+                        }}
+                        />
+                        <Legend layout="horizontal" verticalAlign="bottom" align="center" />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
               <div className="lg:col-span-3">
                 <CorrelationMatrix />
               </div>

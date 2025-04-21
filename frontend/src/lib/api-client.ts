@@ -73,7 +73,7 @@ export async function calculatePlantHealthIndex(sensorData: SensorData | null, w
   }
   
   export async function fetchSunHistory(): Promise<SunData[]> {
-    const response = await fetch(`${API_BASE_URL}/sun-data/recent`);
+    const response = await fetch(`${API_BASE_URL}/sun-data/latest`);
     if (!response.ok) {
       throw new Error(`Failed to fetch sun history: ${response.statusText}`);
     }

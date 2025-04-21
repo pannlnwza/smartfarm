@@ -41,6 +41,13 @@ function generateAlerts(data: DashboardData) {
       message: 'Warning: Heavy rainfall detected. Check for flooding or drainage issues.'
     });
   }
+
+  if (data.latestSensor?.soil_moisture && data.latestSensor.soil_moisture > 80 && data.weather?.rain_1h && data.weather.rain_1h > 5) {
+    alerts.push({
+      type: 'warning',
+      message: 'Warning: Soil might be too wet after rain. Watch out for overwatering or root rot.'
+    });
+  }
   
   return alerts;
 }
@@ -59,18 +66,6 @@ export async function generateAlertsWithRecommendation(data: DashboardData) {
   }
 
   return alerts;
-}
-
-// Format date for display
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
 }
 
 // Format time for chart display
@@ -129,9 +124,9 @@ export default function Dashboard() {
       
       setDashboardData({
         latestSensor: sensorData[0] || null,
-        sensorHistory: sensorData,
+        sensorHistory: sensorData.slice().reverse(),
         weather: weatherData,
-        weatherHistory: weatherHistory,
+        weatherHistory: weatherHistory.slice().reverse(),
         sun: sunData,
         sunHistory: sunHistory,
         healthHistory: healthHistory,
@@ -352,16 +347,6 @@ export default function Dashboard() {
       .join(" ");
   }
 
-  function getDayProgressPercent(sunrise: string, sunset: string): number {
-    const now = new Date();
-    const start = new Date(`${now.toDateString()} ${sunrise}`);
-    const end = new Date(`${now.toDateString()} ${sunset}`);
-  
-    const percent = ((now.getTime() - start.getTime()) / (end.getTime() - start.getTime())) * 100;
-    console.log(Math.min(100, Math.max(0, percent)))
-    return Math.min(100, Math.max(0, percent));
-  }
-
   interface HealthChartDataPoint {
     name: string;
     status: number;
@@ -422,21 +407,19 @@ export default function Dashboard() {
             href="/predict" 
             className="mr-4 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm flex items-center"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
-              <path d="M21 8a5 5 0 1 0-10 0"></path>
-              <path d="M21 12c0 3.28-4 6-6 11-2-5-6-7.72-6-11a6 6 0 0 1 12 0Z"></path>
-              <circle cx="15" cy="8" r="2"></circle>
+            <svg className="w-4 h-4 text-white dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+              <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18.5A2.493 2.493 0 0 1 7.51 20H7.5a2.468 2.468 0 0 1-2.4-3.154 2.98 2.98 0 0 1-.85-5.274 2.468 2.468 0 0 1 .92-3.182 2.477 2.477 0 0 1 1.876-3.344 2.5 2.5 0 0 1 3.41-1.856A2.5 2.5 0 0 1 12 5.5m0 13v-13m0 13a2.493 2.493 0 0 0 4.49 1.5h.01a2.468 2.468 0 0 0 2.403-3.154 2.98 2.98 0 0 0 .847-5.274 2.468 2.468 0 0 0-.921-3.182 2.477 2.477 0 0 0-1.875-3.344A2.5 2.5 0 0 0 14.5 3 2.5 2.5 0 0 0 12 5.5m-8 5a2.5 2.5 0 0 1 3.48-2.3m-.28 8.551a3 3 0 0 1-2.953-5.185M20 10.5a2.5 2.5 0 0 0-3.481-2.3m.28 8.551a3 3 0 0 0 2.954-5.185"/>
             </svg>
-            Predict Health
+            Prediction Tool
+            
           </Link>
           <Link 
             href="/statistics" 
             className="mr-4 bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm flex items-center"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
-              <path d="M21 8a5 5 0 1 0-10 0"></path>
-              <path d="M21 12c0 3.28-4 6-6 11-2-5-6-7.72-6-11a6 6 0 0 1 12 0Z"></path>
-              <circle cx="15" cy="8" r="2"></circle>
+            <svg className="w-4 h-4 text-white dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+              <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6.025A7.5 7.5 0 1 0 17.975 14H10V6.025Z"/>
+              <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.5 3c-.169 0-.334.014-.5.025V11h7.975c.011-.166.025-.331.025-.5A7.5 7.5 0 0 0 13.5 3Z"/>
             </svg>
             Statistics
           </Link>
