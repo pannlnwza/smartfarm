@@ -1,0 +1,11 @@
+# Database Configuration
+DB_HOST: str = "localhost"
+DB_USER: str = "your_username"
+DB_PASSWORD: str = "your_password" 
+DB_NAME: str = "your_database"
+
+# CORS Configuration
+CORS_ORIGINS: list = ["http://localhost:3000"]
+
+# OpenWeather API Key
+OPENWEATHER_API_KEY: str = "your_openweather_api_key"
