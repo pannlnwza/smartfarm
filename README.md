@@ -147,6 +147,9 @@ cd smartfarm
 
    The frontend will be available at `http://localhost:3000`.
 
+## Database Schema
+For detailed information about the database schema used in SmartFarm, including how to create the tables, please refer to our [Database Schema Documentation](https://github.com/pannlnwza/smartfarm/wiki/Database-Schema-Creation-Guide#database-schema-creation-guide).
+
 ## API Endpoints
 
 ### Sensor Data Endpoints
