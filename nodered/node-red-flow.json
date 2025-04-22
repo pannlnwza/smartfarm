@@ -1,0 +1,347 @@
+[
+    {
+        "id": "ba1e766e0c667523",
+        "type": "tab",
+        "label": "Flow 2",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "42b6dc5382bfc236",
+        "type": "function",
+        "z": "ba1e766e0c667523",
+        "name": "Select Latest Location",
+        "func": "msg.topic = \"SELECT lat, lon FROM smartfarm ORDER BY ts DESC LIMIT 1;\";\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 320,
+        "y": 260,
+        "wires": [
+            [
+                "77cea955d3efd487"
+            ]
+        ]
+    },
+    {
+        "id": "77cea955d3efd487",
+        "type": "mysql",
+        "z": "ba1e766e0c667523",
+        "mydb": "976ae4d0fd77aa02",
+        "name": "db",
+        "x": 510,
+        "y": 260,
+        "wires": [
+            [
+                "e3d0650d3b7e3c10"
+            ]
+        ]
+    },
+    {
+        "id": "d31295116963f74a",
+        "type": "http request",
+        "z": "ba1e766e0c667523",
+        "name": "",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "https://api.sunrise-sunset.org/json?lat={{lat}}&lng={{lon}}&tzid=Asia/Bangkok",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 890,
+        "y": 260,
+        "wires": [
+            [
+                "6dd8be6cf3d4dd75",
+                "2b572154d026e02d"
+            ]
+        ]
+    },
+    {
+        "id": "e3d0650d3b7e3c10",
+        "type": "function",
+        "z": "ba1e766e0c667523",
+        "name": "function 4",
+        "func": "msg.lat = msg.payload[0].lat;\nmsg.lon = msg.payload[0].lon;\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 700,
+        "y": 260,
+        "wires": [
+            [
+                "d31295116963f74a"
+            ]
+        ]
+    },
+    {
+        "id": "6d34ce14b2c4ecad",
+        "type": "http request",
+        "z": "ba1e766e0c667523",
+        "name": "",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "https://api.openweathermap.org/data/2.5/weather?lat={{lat}}&lon={{lon}}&appid=39f71571c877eea755c37feab37e4267&units=metric",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 910,
+        "y": 440,
+        "wires": [
+            [
+                "228e8f0e7e3bc017",
+                "0e90f3769175b42d"
+            ]
+        ]
+    },
+    {
+        "id": "3ad2ec04f4dd7c6f",
+        "type": "inject",
+        "z": "ba1e766e0c667523",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "00 20 * * *",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 90,
+        "y": 260,
+        "wires": [
+            [
+                "42b6dc5382bfc236"
+            ]
+        ]
+    },
+    {
+        "id": "1c656e64cc8e0f65",
+        "type": "function",
+        "z": "ba1e766e0c667523",
+        "name": "function 5",
+        "func": "msg.lat = msg.payload.latitude;\nmsg.lon = msg.payload.longitude;\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 720,
+        "y": 440,
+        "wires": [
+            [
+                "6d34ce14b2c4ecad"
+            ]
+        ]
+    },
+    {
+        "id": "aa332e3f65257c75",
+        "type": "mysql",
+        "z": "ba1e766e0c667523",
+        "mydb": "976ae4d0fd77aa02",
+        "name": "db",
+        "x": 1350,
+        "y": 440,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "6dd8be6cf3d4dd75",
+        "type": "function",
+        "z": "ba1e766e0c667523",
+        "name": "function 6",
+        "func": "function convertTo24Hour(time12h) {\n    const [time, modifier] = time12h.split(' ');\n    let [hours, minutes, seconds] = time.split(':');\n\n    if (modifier === 'PM' && hours !== '12') {\n        hours = (parseInt(hours) + 12).toString(); // Convert PM hour to 24-hour format\n    }\n    if (modifier === 'AM' && hours === '12') {\n        hours = '00'; // Convert 12 AM to 00 hours\n    }\n\n    return `${hours}:${minutes}:${seconds}`;\n}\n\nvar sunTimes = msg.payload.results;\n\nvar query = `\n    INSERT INTO sunrise_sunset (ts, sunrise, sunset, solar_noon, day_length, civil_twilight_begin, civil_twilight_end, \n    nautical_twilight_begin, nautical_twilight_end, astronomical_twilight_begin, astronomical_twilight_end, lat, lon)\n    VALUES (NOW(), '${convertTo24Hour(sunTimes.sunrise)}', '${convertTo24Hour(sunTimes.sunset)}', \n    '${convertTo24Hour(sunTimes.solar_noon)}', '${sunTimes.day_length}', '${convertTo24Hour(sunTimes.civil_twilight_begin)}', \n    '${convertTo24Hour(sunTimes.civil_twilight_end)}', '${convertTo24Hour(sunTimes.nautical_twilight_begin)}', \n    '${convertTo24Hour(sunTimes.nautical_twilight_end)}', '${convertTo24Hour(sunTimes.astronomical_twilight_begin)}', \n    '${convertTo24Hour(sunTimes.astronomical_twilight_end)}', 13.8652819, 100.4625611);\n`;\n\nmsg.topic = query;\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1140,
+        "y": 260,
+        "wires": [
+            [
+                "aa332e3f65257c75"
+            ]
+        ]
+    },
+    {
+        "id": "228e8f0e7e3bc017",
+        "type": "function",
+        "z": "ba1e766e0c667523",
+        "name": "function 7",
+        "func": "var smartfarmWeather = msg.payload;\n\nvar lat = smartfarmWeather.coord.lat;\nvar lon = smartfarmWeather.coord.lon;\n\nvar rain_1h = smartfarmWeather.rain ? smartfarmWeather.rain['1h'] : 0;  // Default to 0 if no rain data\nvar clouds = smartfarmWeather.clouds ? smartfarmWeather.clouds.all : 0; // Default to 0 if no clouds data\n\nvar query = `\n    INSERT INTO weather_api (ts, temperature, humidity, pressure, rain_1h, clouds, lat, lon) \n    VALUES (NOW(), ${smartfarmWeather.main.temp}, ${smartfarmWeather.main.humidity}, \n    ${smartfarmWeather.main.pressure}, ${rain_1h}, ${clouds},\n    ${lat}, ${lon});\n`;\n\nmsg.topic = query;\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1140,
+        "y": 440,
+        "wires": [
+            [
+                "aa332e3f65257c75"
+            ]
+        ]
+    },
+    {
+        "id": "2b572154d026e02d",
+        "type": "debug",
+        "z": "ba1e766e0c667523",
+        "name": "debug 3",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1060,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "0e90f3769175b42d",
+        "type": "debug",
+        "z": "ba1e766e0c667523",
+        "name": "debug 4",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1080,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "0672b96e2454c6a0",
+        "type": "mqtt in",
+        "z": "ba1e766e0c667523",
+        "name": "",
+        "topic": "b6610545901/smartfarm",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "acc324da9977f3ba",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 210,
+        "y": 580,
+        "wires": [
+            [
+                "92473ecebdd7ffb7",
+                "8ade9c26b94cc3e6",
+                "1c656e64cc8e0f65"
+            ]
+        ]
+    },
+    {
+        "id": "92473ecebdd7ffb7",
+        "type": "function",
+        "z": "ba1e766e0c667523",
+        "name": "Insert",
+        "func": "msg.topic = \"INSERT INTO smartfarm (ts, lux, temperature, moisture, lat, lon) VALUES (CURRENT_TIMESTAMP, \" + msg.payload.lux + \", \" + msg.payload.temperature + \", \" + msg.payload.soil_moisture + \", \"+ msg.payload.latitude + \", \" + msg.payload.longitude + \");\";\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1210,
+        "y": 720,
+        "wires": [
+            [
+                "aa332e3f65257c75"
+            ]
+        ]
+    },
+    {
+        "id": "8ade9c26b94cc3e6",
+        "type": "debug",
+        "z": "ba1e766e0c667523",
+        "name": "debug 5",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 380,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "976ae4d0fd77aa02",
+        "type": "MySQLdatabase",
+        "name": "b6610545901",
+        "host": "iot.cpe.ku.ac.th",
+        "port": "3306",
+        "db": "b6610545901",
+        "tz": "",
+        "charset": "UTF8"
+    },
+    {
+        "id": "acc324da9977f3ba",
+        "type": "mqtt-broker",
+        "name": "iot",
+        "broker": "iot.cpe.ku.ac.th",
+        "port": 1883,
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    }
+]
