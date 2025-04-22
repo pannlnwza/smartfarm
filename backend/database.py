@@ -20,15 +20,18 @@ class Database:
     @staticmethod
     def execute_query(query: str, fetch_all: bool = True):
         conn = Database.get_connection()
+        cursor = conn.cursor(dictionary=True)
         try:
-            cursor = conn.cursor(dictionary=True)
             cursor.execute(query)
             
             if fetch_all:
                 result = cursor.fetchall()
             else:
                 result = cursor.fetchone()
-                
+
+            while cursor.nextset():
+                pass
+
             return result
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))

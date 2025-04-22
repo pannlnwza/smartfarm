@@ -19,7 +19,6 @@ async def get_sun_data():
         SELECT ts as timestamp, sunrise, sunset, solar_noon, day_length 
         FROM sunrise_sunset 
         ORDER BY ts DESC 
-        LIMIT 1
     """
     data = Database.execute_query(query, fetch_all=False)
     
@@ -42,8 +41,8 @@ async def get_sun_history():
     query = """
         SELECT ts as timestamp, sunrise, sunset, solar_noon, day_length 
         FROM sunrise_sunset 
-        WHERE ts > DATE_SUB(NOW(), INTERVAL 24 HOUR)
         ORDER BY ts DESC
+        LIMIT 1
     """
     data = Database.execute_query(query)
     
