@@ -1,11 +1,6 @@
-# Database Configuration
-DB_HOST: str = "localhost"
-DB_USER: str = "your_username"
-DB_PASSWORD: str = "your_password" 
-DB_NAME: str = "your_database"
-
-# CORS Configuration
+DB_HOST: str = "iot.cpe.ku.ac.th"
+DB_USER: str = "b6610545901"
+DB_PASSWORD: str = "pattapon.g@ku.th"
+DB_NAME: str = "b6610545901"
 CORS_ORIGINS: list = ["http://localhost:3000"]
-
-# OpenWeather API Key
-OPENWEATHER_API_KEY: str = "your_openweather_api_key"
+OPENWEATHER_API_KEY: str = "39f71571c877eea755c37feab37e4267"
