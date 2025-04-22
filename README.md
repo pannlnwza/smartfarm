@@ -27,7 +27,7 @@ SmartFarm helps you answer key questions about your plants:
 - npm or yarn
 - MySQL database
 
-> 🛠️ **Don't have Node.js installed?**  
+> **Don't have Node.js installed?**  
 > Download and install it from [https://nodejs.org](https://nodejs.org).  
 > This will also install `npm`, which is required to run the frontend.
 
@@ -71,6 +71,7 @@ cd smartfarm
    ```
 
 6. Edit `config.py` with your database credentials and API keys:
+   > Note: You can use the MySQL database user `b6610545901`, which is already set up and ready to use.
    ```python
    DB_HOST: str = "your_db_host"
    DB_USER: str = "your_username"
@@ -79,7 +80,14 @@ cd smartfarm
    CORS_ORIGINS: list = ["http://localhost:3000"]
    OPENWEATHER_API_KEY: str = "your_openweather_api_key"
    ```
-   You'll need to obtain an API key from [OpenWeatherMap](https://openweathermap.org/api) for weather forecasts.
+   > # How to Get an OpenWeatherMap API Key
+   > - Go to https://openweathermap.org/api
+   > - Create a free account or sign in if you already have one.
+   > - Navigate to the API keys section in your dashboard.
+   > - Click "Generate" to create a new key.
+   > - Copy the API key and paste it into your config.py file.
+
+
 
 ### Frontend Setup
 
