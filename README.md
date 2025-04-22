@@ -27,6 +27,10 @@ SmartFarm helps you answer key questions about your plants:
 - npm or yarn
 - MySQL database
 
+> 🛠️ **Don't have Node.js installed?**  
+> Download and install it from [https://nodejs.org](https://nodejs.org).  
+> This will also install `npm`, which is required to run the frontend.
+
 ### Clone the Repository
 
 ```bash
